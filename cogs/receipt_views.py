@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import random
 import sys
 import importlib
+import traceback
 
 from config import STORES, DROPDOWN_TIMEOUT, MODAL_TIMEOUT, PRICE_REGEX, DATE_REGEX
 from receipt_generator import ReceiptGenerator
@@ -54,41 +55,71 @@ class StoreSelect(ui.Select):
                 )
                 return
 
-            # Make sure the module is reloaded to get the latest version
-            import cogs.receipt_modals
-            importlib.reload(cogs.receipt_modals)
-            
-            # Dynamically import the modal classes
-            if selected_store == 'amazon':
-                from cogs.receipt_modals import AmazonBasicInfoModal
-                modal = AmazonBasicInfoModal(user_id=interaction.user.id, store_id=selected_store)
-            elif selected_store == 'apple':
-                from cogs.receipt_modals import AppleBasicInfoModal
-                modal = AppleBasicInfoModal(user_id=interaction.user.id, store_id=selected_store)
-            else:
-                from cogs.receipt_modals import GenericBasicInfoModal
-                modal = GenericBasicInfoModal(user_id=interaction.user.id, store_id=selected_store)
-            
-            await interaction.response.send_modal(modal)
-            logger.info(f"Sent modal for store {selected_store} to user {interaction.user.id}")
+            # Log the store selection before doing anything else
+            logger.info(f"User {interaction.user.id} selected store: {selected_store}")
+
+            try:
+                # Make sure the module is reloaded to get the latest version
+                from importlib import reload
+                import cogs.receipt_modals
+                reload(cogs.receipt_modals)
+                
+                # Create the appropriate modal based on store selection
+                if selected_store == 'amazon':
+                    from cogs.receipt_modals import AmazonBasicInfoModal
+                    modal = AmazonBasicInfoModal(user_id=interaction.user.id, store_id=selected_store)
+                elif selected_store == 'apple':
+                    from cogs.receipt_modals import AppleBasicInfoModal
+                    modal = AppleBasicInfoModal(user_id=interaction.user.id, store_id=selected_store)
+                else:
+                    from cogs.receipt_modals import GenericBasicInfoModal
+                    modal = GenericBasicInfoModal(user_id=interaction.user.id, store_id=selected_store)
+                
+                # Log before sending modal
+                logger.info(f"Sending {selected_store} modal to user {interaction.user.id}")
+                
+                # Send the modal
+                await interaction.response.send_modal(modal)
+                
+                # Log after sending modal (will only be reached if no exception)
+                logger.info(f"Successfully sent modal for store {selected_store} to user {interaction.user.id}")
+                
+            except Exception as modal_error:
+                # Log detailed error information for modal creation/sending
+                error_traceback = ''.join(traceback.format_exception(type(modal_error), modal_error, modal_error.__traceback__))
+                logger.error(f"Error creating/sending modal: {str(modal_error)}\n{error_traceback}")
+                
+                # Try to respond to the interaction if it hasn't been responded to yet
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(
+                        f"❌ Error creating modal: {str(modal_error)}", 
+                        ephemeral=True
+                    )
+                else:
+                    await interaction.followup.send(
+                        f"❌ Error creating modal: {str(modal_error)}", 
+                        ephemeral=True
+                    )
             
         except Exception as e:
-            logger.error(f"Error in store selection callback: {str(e)}", exc_info=True)
-            # Use followup since response might already be used
+            # Catch-all for any other errors in the callback
+            error_traceback = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+            logger.error(f"Unhandled error in store selection callback: {str(e)}\n{error_traceback}")
+            
+            # Handle the response based on whether the interaction has been responded to
             try:
-                await interaction.followup.send(
-                    f"❌ An error occurred: {str(e)}", 
-                    ephemeral=True
-                )
-            except:
-                # If followup fails, try response if it wasn't used
-                try:
+                if not interaction.response.is_done():
                     await interaction.response.send_message(
                         f"❌ An error occurred: {str(e)}", 
                         ephemeral=True
                     )
-                except Exception as e2:
-                    logger.error(f"Failed to send error message: {str(e2)}", exc_info=True)
+                else:
+                    await interaction.followup.send(
+                        f"❌ An error occurred: {str(e)}", 
+                        ephemeral=True
+                    )
+            except Exception as send_error:
+                logger.error(f"Failed to send error message: {str(send_error)}", exc_info=True)
 
     def _get_first_stage_modal(self, store_id: str):
         """

@@ -1,6 +1,8 @@
 import logging
 from io import BytesIO
 from typing import Dict, Any, Optional
+from PIL import Image, ImageDraw, ImageFont
+import os
 
 # Setup logging
 logger = logging.getLogger('receipt_generator')
@@ -24,24 +26,27 @@ class ReceiptGenerator:
         try:
             self.logger.info(f"Generating receipt for store {store_id}")
             
-            # For now, this is a placeholder that creates a dummy image
-            # In a real implementation, this would create a proper receipt image
-            from PIL import Image, ImageDraw, ImageFont
-            import io
+            # Find a reliable font
+            try:
+                # Look for Arial in multiple common locations
+                possible_fonts = [
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
+                    "/Library/Fonts/Arial.ttf",  # macOS
+                    "C:\\Windows\\Fonts\\arial.ttf",  # Windows
+                    "arial.ttf"  # Fallback
+                ]
+                font_path = next(font for font in possible_fonts if os.path.exists(font))
+                font = ImageFont.truetype(font_path, 20)
+                small_font = ImageFont.truetype(font_path, 15)
+            except (IOError, StopIteration):
+                # Absolute fallback to default font
+                font = ImageFont.load_default()
+                small_font = ImageFont.load_default()
             
             # Create a new image with white background
             width, height = 800, 1200
             image = Image.new('RGB', (width, height), color=(255, 255, 255))
             draw = ImageDraw.Draw(image)
-            
-            # Try to load a font, fall back to default if not available
-            try:
-                font = ImageFont.truetype("arial.ttf", 20)
-                small_font = ImageFont.truetype("arial.ttf", 15)
-            except IOError:
-                # Use default font if arial.ttf is not available
-                font = ImageFont.load_default()
-                small_font = ImageFont.load_default()
             
             # Draw store name at the top
             store_name = data.get('store_name', f"Receipt for {store_id.capitalize()}")
@@ -52,11 +57,6 @@ class ReceiptGenerator:
             
             # Draw customer info
             y_position = 150
-            
-            # Customer name
-            if 'full_name' in data:
-                draw.text((50, y_position), f"Customer: {data['full_name']}", fill=(0, 0, 0), font=font)
-                y_position += 30
             
             # Date
             if 'date' in data:
@@ -78,25 +78,14 @@ class ReceiptGenerator:
                 draw.text((50, y_position), f"Price: {currency}{data['price']}", fill=(0, 0, 0), font=font)
                 y_position += 30
             
-            # Shipping cost
-            if 'shipping_cost' in data and 'currency' in data:
-                currency = data.get('currency', '$')
-                cost = data.get('shipping_cost', '0.00')
-                draw.text((50, y_position), f"Shipping: {currency}{cost}", fill=(0, 0, 0), font=font)
+            # Store-specific details
+            if store_id == 'amazon' and 'order_number' in data:
+                draw.text((50, y_position), f"Order Number: {data['order_number']}", fill=(0, 0, 0), font=font)
                 y_position += 30
             
-            # Calculate and show total
-            if 'price' in data and 'shipping_cost' in data:
-                try:
-                    price = float(data['price'])
-                    shipping = float(data.get('shipping_cost', '0.00'))
-                    total = price + shipping
-                    currency = data.get('currency', '$')
-                    draw.text((50, y_position), f"Total: {currency}{total:.2f}", fill=(0, 0, 0), font=font)
-                    y_position += 40
-                except ValueError:
-                    # Skip if price is not a valid number
-                    pass
+            if store_id == 'apple' and 'serial_number' in data:
+                draw.text((50, y_position), f"Serial Number: {data['serial_number']}", fill=(0, 0, 0), font=font)
+                y_position += 30
             
             # Draw shipping address
             if 'shipping_address' in data:
@@ -104,17 +93,6 @@ class ReceiptGenerator:
                 y_position += 25
                 
                 address_lines = data['shipping_address'].split('\n')
-                for line in address_lines:
-                    draw.text((70, y_position), line, fill=(0, 0, 0), font=small_font)
-                    y_position += 20
-            
-            # Draw billing address if different
-            if 'billing_address' in data and data.get('billing_address') != data.get('shipping_address'):
-                y_position += 10
-                draw.text((50, y_position), "Billing Address:", fill=(0, 0, 0), font=font)
-                y_position += 25
-                
-                address_lines = data['billing_address'].split('\n')
                 for line in address_lines:
                     draw.text((70, y_position), line, fill=(0, 0, 0), font=small_font)
                     y_position += 20

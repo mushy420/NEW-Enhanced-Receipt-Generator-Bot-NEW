@@ -8,6 +8,7 @@ import random
 import sys
 import importlib
 import traceback
+import os
 
 from config import STORES, DROPDOWN_TIMEOUT, MODAL_TIMEOUT, PRICE_REGEX, DATE_REGEX
 from receipt_generator import ReceiptGenerator
@@ -59,30 +60,53 @@ class StoreSelect(ui.Select):
             logger.info(f"User {interaction.user.id} selected store: {selected_store}")
 
             try:
-                # Make sure the module is reloaded to get the latest version
-                from importlib import reload
-                import cogs.receipt_modals
-                reload(cogs.receipt_modals)
+                # Check if the receipt_modals.py file exists in the cogs directory
+                if not os.path.exists("cogs/receipt_modals.py"):
+                    await interaction.response.send_message(
+                        "❌ Receipt modals module not found. Please contact the bot administrator.",
+                        ephemeral=True
+                    )
+                    logger.error(f"receipt_modals.py not found in cogs directory")
+                    return
+
+                # Make sure the module is properly imported
+                try:
+                    # This is the critical fix: make sure we have the correct absolute import
+                    from cogs.receipt_modals import (
+                        AmazonBasicInfoModal, 
+                        AppleBasicInfoModal, 
+                        GenericBasicInfoModal
+                    )
+                    
+                    # Create the appropriate modal based on store selection
+                    if selected_store == 'amazon':
+                        modal = AmazonBasicInfoModal(user_id=interaction.user.id, store_id=selected_store)
+                        logger.info(f"Created Amazon modal for user {interaction.user.id}")
+                    elif selected_store == 'apple':
+                        modal = AppleBasicInfoModal(user_id=interaction.user.id, store_id=selected_store)
+                        logger.info(f"Created Apple modal for user {interaction.user.id}")
+                    else:
+                        modal = GenericBasicInfoModal(user_id=interaction.user.id, store_id=selected_store)
+                        logger.info(f"Created Generic modal for user {interaction.user.id}")
+                    
+                    # Log before sending modal
+                    logger.info(f"Sending {selected_store} modal to user {interaction.user.id}")
+                    
+                    # Send the modal
+                    await interaction.response.send_modal(modal)
+                    
+                    # Log after sending modal
+                    logger.info(f"Successfully sent modal for store {selected_store} to user {interaction.user.id}")
                 
-                # Create the appropriate modal based on store selection
-                if selected_store == 'amazon':
-                    from cogs.receipt_modals import AmazonBasicInfoModal
-                    modal = AmazonBasicInfoModal(user_id=interaction.user.id, store_id=selected_store)
-                elif selected_store == 'apple':
-                    from cogs.receipt_modals import AppleBasicInfoModal
-                    modal = AppleBasicInfoModal(user_id=interaction.user.id, store_id=selected_store)
-                else:
-                    from cogs.receipt_modals import GenericBasicInfoModal
-                    modal = GenericBasicInfoModal(user_id=interaction.user.id, store_id=selected_store)
-                
-                # Log before sending modal
-                logger.info(f"Sending {selected_store} modal to user {interaction.user.id}")
-                
-                # Send the modal
-                await interaction.response.send_modal(modal)
-                
-                # Log after sending modal (will only be reached if no exception)
-                logger.info(f"Successfully sent modal for store {selected_store} to user {interaction.user.id}")
+                except ImportError as import_error:
+                    error_traceback = ''.join(traceback.format_exception(type(import_error), import_error, import_error.__traceback__))
+                    logger.error(f"Import error: {str(import_error)}\n{error_traceback}")
+                    
+                    await interaction.response.send_message(
+                        f"❌ Error importing modal classes: {str(import_error)}", 
+                        ephemeral=True
+                    )
+                    return
                 
             except Exception as modal_error:
                 # Log detailed error information for modal creation/sending
@@ -120,13 +144,6 @@ class StoreSelect(ui.Select):
                     )
             except Exception as send_error:
                 logger.error(f"Failed to send error message: {str(send_error)}", exc_info=True)
-
-    def _get_first_stage_modal(self, store_id: str):
-        """
-        This method is maintained for backward compatibility but is no longer used.
-        We now import the modals directly in the callback.
-        """
-        pass
 
 class ReceiptView(ui.View):
     """View containing the store selection dropdown."""

@@ -107,7 +107,7 @@ class GenericBasicInfoModal(BaseBasicInfoModal):
     def __init__(self, user_id: int, store_id: str):
         super().__init__(user_id, store_id)
         
-        # Product details - text style must be one of the valid enum values (1 = short, 2 = paragraph)
+        # Product details - using correct discord.TextStyle values (1=short, 2=paragraph)
         self.product = ui.TextInput(
             label="Product Name", 
             placeholder="Enter product name", 
@@ -167,7 +167,7 @@ class GenericAdditionalInfoModal(BaseAdditionalInfoModal):
         )
         self.add_item(self.customer_name)
         
-        # Shipping address - use paragraph style which is value 2
+        # Shipping address - using paragraph style
         self.shipping_address = ui.TextInput(
             label="Shipping Address", 
             placeholder="Enter full shipping address", 
@@ -252,10 +252,10 @@ class AmazonBasicInfoModal(BaseBasicInfoModal):
 
 class AmazonAdditionalInfoModal(BaseAdditionalInfoModal):
     """Second-stage modal for Amazon to collect shipping and payment details."""
-    def __init__(self, user_id: int, store_id: str, basic_info: Dict[str, Any]):
+    def __init__(self, user_id: Int, store_id: str, basic_info: Dict[str, Any]):
         super().__init__(user_id, store_id, basic_info)
         
-        # Shipping address - use paragraph style which is value 2
+        # Shipping address
         self.shipping_address = ui.TextInput(
             label="Shipping Address", 
             placeholder="Enter full shipping address", 
@@ -419,3 +419,4 @@ async def setup(bot):
     # This cog doesn't need to be added to the bot directly
     # It's used by the receipt_generator cog
     pass
+

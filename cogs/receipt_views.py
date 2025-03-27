@@ -85,3 +85,9 @@ class ReceiptView(ui.View):
     def __init__(self, user_id: int):
         super().__init__(timeout=DROPDOWN_TIMEOUT)
         self.add_item(StoreSelect(user_id))
+
+# Required for Discord.py extension loading
+async def setup(bot):
+    # This cog doesn't need to be added to the bot directly
+    # It's used by the receipt_generator cog
+    pass

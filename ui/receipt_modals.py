@@ -7,12 +7,18 @@ from datetime import datetime, timedelta
 import random
 import traceback
 
-from utils.validators import validate_price, validate_date, validate_url
-from core.config import MODAL_TIMEOUT, STORES
-from core.receipt_generator import ReceiptGenerator
+# Update import to use relative path
+from ..config import STORES, PRICE_REGEX, DATE_REGEX, MODAL_TIMEOUT
+from ..receipt_generator import ReceiptGenerator
 
 # Setup logging
 logger = logging.getLogger('receipt_modals')
+
+# Required for Discord.py extension loading
+async def setup(bot):
+    # This cog doesn't need to be added to the bot directly
+    # It's used by the receipt_generator cog
+    pass
 
 # First-stage modals for basic information
 class BaseBasicInfoModal(ui.Modal):

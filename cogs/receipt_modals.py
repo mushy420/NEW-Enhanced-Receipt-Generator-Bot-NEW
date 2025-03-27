@@ -44,14 +44,12 @@ class BaseBasicInfoModal(ui.Modal):
 
     def _get_second_stage_modal(self, interaction: discord.Interaction) -> ui.Modal:
         """Get the appropriate second stage modal based on store ID."""
-        second_stage_classes = {
-            'amazon': AmazonAdditionalInfoModal,
-            'apple': AppleAdditionalInfoModal,
-            # Add more store-specific second-stage modals as needed
-        }
-        
-        modal_class = second_stage_classes.get(self.store_id, GenericAdditionalInfoModal)
-        return modal_class(user_id=self.user_id, store_id=self.store_id, basic_info=self.basic_info)
+        if self.store_id == 'amazon':
+            return AmazonAdditionalInfoModal(user_id=self.user_id, store_id=self.store_id, basic_info=self.basic_info)
+        elif self.store_id == 'apple':
+            return AppleAdditionalInfoModal(user_id=self.user_id, store_id=self.store_id, basic_info=self.basic_info)
+        else:
+            return GenericAdditionalInfoModal(user_id=self.user_id, store_id=self.store_id, basic_info=self.basic_info)
 
 # Second-stage modals for additional information
 class BaseAdditionalInfoModal(ui.Modal):

@@ -33,7 +33,12 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-bot = commands.Bot(command_prefix=PREFIX, intents=intents, help_command=None)
+# Create bot instance without the CommandSyncFlags parameter
+bot = commands.Bot(
+    command_prefix=PREFIX, 
+    intents=intents, 
+    help_command=None
+)
 
 # Connection tracking variables
 last_disconnect = None
@@ -44,13 +49,71 @@ connection_errors = []
 @bot.event
 async def on_command_error(ctx, error):
     """Global error handler for all command errors."""
-    # ... keep existing code (command error handling)
+    error_message = None
+    
+    if isinstance(error, commands.CommandOnCooldown):
+        error_message = f"⏱️ **Command on cooldown!** Try again in {error.retry_after:.1f}s"
+    elif isinstance(error, commands.MissingRequiredArgument):
+        error_message = f"❌ **Missing required argument!** Please check the command usage."
+    elif isinstance(error, commands.BadArgument):
+        error_message = f"❌ **Invalid argument!** Please check the command usage."
+    elif isinstance(error, commands.MissingPermissions):
+        error_message = f"❌ **You don't have permission to use this command!**"
+    elif isinstance(error, commands.BotMissingPermissions):
+        error_message = f"❌ **Bot doesn't have required permissions!**"
+    elif isinstance(error, commands.CommandNotFound):
+        # Don't respond to unknown commands
+        return
+    else:
+        # Log unexpected errors with detailed traceback
+        error_traceback = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
+        logger.error(f"Unexpected error: {str(error)}\n{error_traceback}")
+        error_message = f"❌ **An error occurred:** {str(error)}"
+    
+    if error_message:
+        embed = discord.Embed(
+            title="Error",
+            description=error_message,
+            color=discord.Color.red()
+        )
+        try:
+            await ctx.send(embed=embed, ephemeral=True)
+        except discord.errors.HTTPException:
+            # Fallback if the message can't be sent normally
+            logger.error(f"Failed to send error message for error: {error}")
 
 # Global error handler for app commands
 @bot.tree.error
 async def on_app_command_error(interaction, error):
     """Global error handler for all application command errors."""
-    # ... keep existing code (app command error handling)
+    error_message = None
+    
+    if isinstance(error, app_commands.CommandOnCooldown):
+        error_message = f"⏱️ **Command on cooldown!** Try again in {error.retry_after:.1f}s"
+    elif isinstance(error, app_commands.MissingPermissions):
+        error_message = f"❌ **You don't have permission to use this command!**"
+    elif isinstance(error, app_commands.BotMissingPermissions):
+        error_message = f"❌ **Bot doesn't have required permissions!**"
+    else:
+        # Log unexpected errors with detailed traceback
+        error_traceback = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
+        logger.error(f"Unexpected app command error: {str(error)}\n{error_traceback}")
+        error_message = f"❌ **An error occurred:** {str(error)}"
+    
+    if error_message:
+        embed = discord.Embed(
+            title="Error",
+            description=error_message,
+            color=discord.Color(ERROR_COLOR)
+        )
+        try:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+            else:
+                await interaction.followup.send(embed=embed, ephemeral=True)
+        except discord.errors.HTTPException as e:
+            # Interaction might have expired or other HTTP error
+            logger.error(f"Failed to send error message for interaction error: {error}. HTTP error: {e}")
 
 @bot.event
 async def on_ready():
@@ -68,9 +131,14 @@ async def on_ready():
         logger.info(f"Bot was down for {downtime.total_seconds():.2f} seconds")
         last_disconnect = None
     
-    await bot.tree.sync()
+    # Explicitly sync commands on startup
+    try:
+        synced = await bot.tree.sync()
+        logger.info(f"Synced {len(synced)} command(s)")
+    except Exception as e:
+        logger.error(f"Failed to sync commands: {e}")
+    
     logger.info(f"{bot.user.name} is now online!")
-    logger.info(f"Synced {len(bot.tree.get_commands())} command(s)")
     
     # Set status
     await bot.change_presence(
@@ -100,6 +168,13 @@ async def on_resumed():
 async def on_connect():
     """Event fired when the bot connects to Discord."""
     logger.info(f"Connected to Discord (Session ID: {bot.ws.session_id if bot.ws else 'Unknown'})")
+
+# Added error handler for modal interactions
+@bot.event
+async def on_interaction(interaction):
+    """Handle any interaction errors that might not be caught by other handlers."""
+    # Let the standard handlers process the interaction first
+    await bot.process_application_commands(interaction)
 
 # Improved exception catching for unhandled errors
 @bot.event
@@ -147,7 +222,15 @@ async def on_error(event, *args, **kwargs):
 # Load cogs
 async def load_extensions():
     """Load all extensions from the cogs folder."""
-    # ... keep existing code (cog loading)
+    for filename in os.listdir("./cogs"):
+        if filename.endswith(".py"):
+            extension = f"cogs.{filename[:-3]}"
+            try:
+                await bot.load_extension(extension)
+                logger.info(f"Loaded extension: {extension}")
+            except Exception as e:
+                error_traceback = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+                logger.error(f"Failed to load extension {extension}:\n{error_traceback}")
 
 # Main function to run the bot
 async def main():

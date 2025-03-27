@@ -34,35 +34,48 @@ class StoreSelect(ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         """Handle store selection."""
-        if interaction.user.id != self.user_id:
-            await interaction.response.send_message(
-                "❌ You cannot interact with this dropdown.", 
-                ephemeral=True
-            )
-            return
-
-        selected_store = self.values[0]
-        store_info = STORES.get(selected_store)
-        
-        if not store_info:
-            await interaction.response.send_message(
-                "❌ Invalid store selected.", 
-                ephemeral=True
-            )
-            return
-
-        # First stage modal - Basic information
-        modal_class = self._get_first_stage_modal(selected_store)
-        modal = modal_class(user_id=interaction.user.id, store_id=selected_store)
-        
         try:
+            if interaction.user.id != self.user_id:
+                await interaction.response.send_message(
+                    "❌ You cannot interact with this dropdown.", 
+                    ephemeral=True
+                )
+                return
+
+            selected_store = self.values[0]
+            store_info = STORES.get(selected_store)
+            
+            if not store_info:
+                await interaction.response.send_message(
+                    "❌ Invalid store selected.", 
+                    ephemeral=True
+                )
+                return
+
+            # First stage modal - Basic information
+            modal_class = self._get_first_stage_modal(selected_store)
+            modal = modal_class(user_id=interaction.user.id, store_id=selected_store)
+            
             await interaction.response.send_modal(modal)
+            logger.info(f"Sent modal for store {selected_store} to user {interaction.user.id}")
+            
         except Exception as e:
-            logger.error(f"Error showing modal: {str(e)}", exc_info=True)
-            await interaction.followup.send(
-                f"❌ An error occurred while showing the modal: {str(e)}", 
-                ephemeral=True
-            )
+            logger.error(f"Error in store selection callback: {str(e)}", exc_info=True)
+            # Use followup since response might already be used
+            try:
+                await interaction.followup.send(
+                    f"❌ An error occurred: {str(e)}", 
+                    ephemeral=True
+                )
+            except:
+                # If followup fails, try response if it wasn't used
+                try:
+                    await interaction.response.send_message(
+                        f"❌ An error occurred: {str(e)}", 
+                        ephemeral=True
+                    )
+                except Exception as e2:
+                    logger.error(f"Failed to send error message: {str(e2)}", exc_info=True)
 
     def _get_first_stage_modal(self, store_id: str):
         """Get the appropriate first stage modal for the selected store."""

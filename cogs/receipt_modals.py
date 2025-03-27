@@ -107,7 +107,7 @@ class GenericBasicInfoModal(BaseBasicInfoModal):
     def __init__(self, user_id: int, store_id: str):
         super().__init__(user_id, store_id)
         
-        # Product details
+        # Product details - text style must be one of the valid enum values (1 = short, 2 = paragraph)
         self.product = ui.TextInput(
             label="Product Name", 
             placeholder="Enter product name", 
@@ -167,7 +167,7 @@ class GenericAdditionalInfoModal(BaseAdditionalInfoModal):
         )
         self.add_item(self.customer_name)
         
-        # Shipping address
+        # Shipping address - use paragraph style which is value 2
         self.shipping_address = ui.TextInput(
             label="Shipping Address", 
             placeholder="Enter full shipping address", 
@@ -255,7 +255,7 @@ class AmazonAdditionalInfoModal(BaseAdditionalInfoModal):
     def __init__(self, user_id: int, store_id: str, basic_info: Dict[str, Any]):
         super().__init__(user_id, store_id, basic_info)
         
-        # Shipping address
+        # Shipping address - use paragraph style which is value 2
         self.shipping_address = ui.TextInput(
             label="Shipping Address", 
             placeholder="Enter full shipping address", 
@@ -413,3 +413,9 @@ class AppleAdditionalInfoModal(BaseAdditionalInfoModal):
             'shipping_address': self.shipping_address.value,
             'payment_method': self.payment_method.value if self.payment_method.value else "Apple Pay"
         }
+
+# Required for Discord.py extension loading
+async def setup(bot):
+    # This cog doesn't need to be added to the bot directly
+    # It's used by the receipt_generator cog
+    pass

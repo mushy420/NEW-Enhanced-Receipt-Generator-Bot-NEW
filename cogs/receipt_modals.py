@@ -14,12 +14,6 @@ from ..receipt_generator import ReceiptGenerator
 # Setup logging
 logger = logging.getLogger('receipt_modals')
 
-# Required for Discord.py extension loading
-async def setup(bot):
-    # This cog doesn't need to be added to the bot directly
-    # It's used by the receipt_generator cog
-    pass
-
 # First-stage modals for basic information
 class BaseBasicInfoModal(ui.Modal):
     """Base first-stage modal for collecting basic receipt information."""
@@ -476,3 +470,10 @@ class AppleAdditionalInfoModal(BaseAdditionalInfoModal):
             'shipping_address': self.shipping_address.value,
             'payment_method': self.payment_method.value if self.payment_method.value else "Apple Pay"
         }
+
+# Required for Discord.py extension loading
+async def setup(bot):
+    # This cog doesn't need to be added to the bot directly
+    # It's used by the receipt_generator cog
+    pass
+

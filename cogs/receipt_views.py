@@ -10,8 +10,10 @@ import importlib
 import traceback
 import os
 
-from config import STORES, DROPDOWN_TIMEOUT, MODAL_TIMEOUT, PRICE_REGEX, DATE_REGEX
-from receipt_generator import ReceiptGenerator
+# Update import to use relative path
+from ..config import STORES, DROPDOWN_TIMEOUT, MODAL_TIMEOUT, PRICE_REGEX, DATE_REGEX
+# The receipt_generator import must be updated
+from ..receipt_generator import ReceiptGenerator
 
 # Setup logging
 logger = logging.getLogger('receipt_views')
@@ -61,8 +63,8 @@ class StoreSelect(ui.Select):
 
             try:
                 # Import receipt_modals directly
-                # Ensure we're looking in the correct directory
-                from cogs.receipt_modals import (
+                # Update import path
+                from .receipt_modals import (
                     AmazonBasicInfoModal, 
                     AppleBasicInfoModal, 
                     GenericBasicInfoModal

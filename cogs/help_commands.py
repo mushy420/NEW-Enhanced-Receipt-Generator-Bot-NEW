@@ -4,10 +4,8 @@ from discord.ext import commands
 import logging
 from typing import Optional
 
-from config import EMBED_COLOR, PREFIX
-
-# Setup logging
-logger = logging.getLogger('help_commands')
+# Update import to use relative path
+from ..config import EMBED_COLOR, PREFIX
 
 class HelpCog(commands.Cog):
     """Cog for handling help commands."""

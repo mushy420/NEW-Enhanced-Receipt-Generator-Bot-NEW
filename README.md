@@ -1,7 +1,6 @@
 # Discord Receipt Generator Bot
 
 <div align="center">
-  <img src="https://i.imgur.com/ZaMLoqI.png" width="150" height="150" alt="Receipt Bot Logo">
   <br>
   <b>Generate realistic receipt images for various popular retailers</b>
   <br>

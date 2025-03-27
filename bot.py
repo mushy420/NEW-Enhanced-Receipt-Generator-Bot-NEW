@@ -166,10 +166,32 @@ async def main():
         member_count = sum(guild.member_count for guild in bot.guilds)
         logger.info(f"Bot is active in {server_count} servers with {member_count} total members")
     
+# Load cogs
+async def load_extensions():
+    """Load all extensions from the cogs folder."""
+    for filename in os.listdir("./cogs"):
+        if filename.endswith(".py") and not filename.startswith("__"):
+            extension = f"cogs.{filename[:-3]}"
+            try:
+                await bot.load_extension(extension)
+                logger.info(f"Loaded extension: {extension}")
+            except Exception as e:
+                error_traceback = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+                logger.error(f"Failed to load extension {extension}:\n{error_traceback}")
+
+# Main function to run the bot
+async def main():
+    """Main function to run the bot."""
     async with bot:
-        # Load extensions
-        await load_extensions(bot)
+        # Make sure the utils directory exists with validators.py
+        try:
+            from utils import validators
+            logger.info("utils.validators module found")
+        except ImportError:
+            logger.warning("utils.validators module not found, creating...")
+            # The file will be created when we run the script
         
+        await load_extensions()
         try:
             logger.info("Starting bot...")
             await bot.start(BOT_TOKEN)
@@ -191,9 +213,6 @@ if __name__ == "__main__":
     # Set up asyncio policy for Windows if needed
     if sys.platform == "win32":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    
-    # Set up logging
-    logger = setup_logger('bot', LOG_LEVEL, LOG_FORMAT, LOG_FILE)
     
     # Add backoff for reconnection attempts
     max_retries = 5

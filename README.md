@@ -1,6 +1,8 @@
 # HEADS UP
 
-I think i'm going to make this a webiste now seeing what it involves this will be much better as a website so im sorry if you were waiting for any updates howevwe I will still share the website once I get round to it. Most likely will make the website tomorrow (03/28/2025) 
+This has been pushed to a website cureently apple is the only good option
+
+https://instantreceipt.lovable.app
 
 
 # Discord Receipt Generator Bot

@@ -4,16 +4,17 @@ from discord.ext import commands
 import logging
 from typing import Optional
 
-from core.config import EMBED_COLOR, PREFIX, STORES
+from config import EMBED_COLOR, PREFIX
 
 # Setup logging
 logger = logging.getLogger('help_commands')
 
-class HelpCommandsCog(commands.Cog):
+class HelpCog(commands.Cog):
     """Cog for handling help commands."""
     
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.logger = logging.getLogger('help_commands')
         self._original_help_command = bot.help_command
         bot.help_command = None  # Remove the default help command
     
@@ -24,16 +25,12 @@ class HelpCommandsCog(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         """Log when the cog is loaded."""
-        logger.info("Help Commands cog is ready")
+        self.logger.info("Help Commands cog is ready")
     
-    @app_commands.command(name="help", description="Shows help information about commands")
-    @app_commands.describe(command="Get help for a specific command")
-    async def help_slash(self, interaction: discord.Interaction, command: Optional[str] = None):
+    @app_commands.command(name="help", description="Shows help information about all commands")
+    async def help_slash(self, interaction: discord.Interaction):
         """Show help information about commands."""
-        if command:
-            await self._send_command_help(interaction, command)
-        else:
-            await self._send_general_help(interaction)
+        await self._send_general_help(interaction)
     
     async def _send_general_help(self, interaction: discord.Interaction):
         """Send general help information."""
@@ -81,89 +78,13 @@ class HelpCommandsCog(commands.Cog):
         )
         
         # Add footer
-        embed.set_footer(text="For detailed help on a specific command, use /help [command]")
+        embed.set_footer(text="Enhanced Receipt Generator")
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
-        logger.info(f"General help requested by {interaction.user.id}")
-    
-    async def _send_command_help(self, interaction: discord.Interaction, command_name: str):
-        """Send help information for a specific command."""
-        # Remove leading slash or prefix if present
-        command_name = command_name.lstrip('/')
-        command_name = command_name.lstrip(PREFIX)
-        
-        # Look for the command in app commands
-        app_cmd = None
-        for cmd in self.bot.tree.get_commands():
-            if cmd.name == command_name:
-                app_cmd = cmd
-                break
-        
-        if app_cmd:
-            # Create embed for app command
-            embed = discord.Embed(
-                title=f"Command: /{app_cmd.name}",
-                description=app_cmd.description or "No description provided",
-                color=discord.Color(EMBED_COLOR)
-            )
-            
-            # Add parameters if any
-            if hasattr(app_cmd, 'parameters') and app_cmd.parameters:
-                params_text = ""
-                for param in app_cmd.parameters:
-                    param_desc = param.description or "No description"
-                    required = "Required" if param.required else "Optional"
-                    params_text += f"**{param.name}** ({required}): {param_desc}\n"
-                
-                if params_text:
-                    embed.add_field(name="Parameters", value=params_text, inline=False)
-            
-            # Add usage example
-            usage = f"/{app_cmd.name}"
-            if hasattr(app_cmd, 'parameters') and app_cmd.parameters:
-                for param in app_cmd.parameters:
-                    if param.required:
-                        usage += f" <{param.name}>"
-                    else:
-                        usage += f" [{param.name}]"
-            
-            embed.add_field(name="Usage", value=f"`{usage}`", inline=False)
-            
-            # Add receipt specific instructions
-            if command_name == "receipt":
-                embed.add_field(
-                    name="How to use the Receipt Generator",
-                    value="1. Use `/receipt` to start the generator\n"
-                          "2. Select a store from the dropdown menu\n"
-                          "3. Fill in the product details in the modal\n"
-                          "4. The receipt will be generated and sent to you\n\n"
-                          "Note: All receipts are for educational purposes only!",
-                    inline=False
-                )
-                
-                # Add available stores
-                stores_list = ", ".join([store_info["name"] for store_id, store_info in STORES.items()])
-                embed.add_field(
-                    name="Available Stores",
-                    value=stores_list,
-                    inline=False
-                )
-            
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            logger.info(f"Help for /{command_name} requested by {interaction.user.id}")
-            return
-        
-        # If we get here, command was not found
-        embed = discord.Embed(
-            title="Command Not Found",
-            description=f"The command `{command_name}` was not found. Use `/help` to see available commands.",
-            color=discord.Color.red()
-        )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        logger.warning(f"Help requested for unknown command '{command_name}' by {interaction.user.id}")
+        self.logger.info(f"Help requested by {interaction.user.id}")
     
     @commands.command(name="help", hidden=True)
-    async def help_legacy(self, ctx, command: str = None):
+    async def help_legacy(self, ctx):
         """Legacy help command with prefix, hidden from help."""
         embed = discord.Embed(
             title="Command Deprecated",
@@ -174,4 +95,4 @@ class HelpCommandsCog(commands.Cog):
 
 async def setup(bot: commands.Bot):
     """Add the cog to the bot."""
-    await bot.add_cog(HelpCommandsCog(bot))
+    await bot.add_cog(HelpCog(bot))

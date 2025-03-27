@@ -34,7 +34,7 @@ class ReceiptGenerator:
             fonts = self._load_fonts()
             
             # Create a new image with white background
-            width, height = 800, 1100
+            width, height = 800, 1200
             
             # For Amazon, use a light cream background
             background_color = (255, 255, 255)  # White for basic template
@@ -86,6 +86,7 @@ class ReceiptGenerator:
                 regular_font = ImageFont.load_default()
                 small_font = ImageFont.load_default()
                 bold_font = ImageFont.load_default()
+                small_bold_font = ImageFont.load_default()
             else:
                 # Create different font sizes
                 title_font = ImageFont.truetype(font_path, 28)
@@ -110,14 +111,17 @@ class ReceiptGenerator:
                 # If no bold font found, use regular font
                 if not bold_font_path:
                     bold_font = regular_font
+                    small_bold_font = small_font
                 else:
                     bold_font = ImageFont.truetype(bold_font_path, 20)
+                    small_bold_font = ImageFont.truetype(bold_font_path, 16)
             
             return {
                 'title': title_font,
                 'regular': regular_font,
                 'small': small_font,
-                'bold': bold_font
+                'bold': bold_font,
+                'small_bold': small_bold_font
             }
             
         except Exception as e:
@@ -128,70 +132,89 @@ class ReceiptGenerator:
                 'title': default,
                 'regular': default,
                 'small': default,
-                'bold': default
+                'bold': default,
+                'small_bold': default
             }
     
     def _generate_amazon_receipt(self, image: Image.Image, draw: ImageDraw.Draw, 
                                data: Dict[str, Any], fonts: Dict[str, ImageFont.FreeTypeFont]) -> BytesIO:
-        """Generate an Amazon-styled receipt based on the example image."""
+        """Generate an Amazon-styled receipt matching the real example."""
         width, height = image.size
         
-        # Header with Amazon logo
-        draw.text((width//2, 60), "amazon", fill=(0, 0, 0), font=fonts['title'], anchor="mm")
-        # Amazon smile underline
-        draw.arc([(width//2 - 60, 70), (width//2 + 60, 90)], 0, 180, fill=(255, 153, 0), width=2)
+        # AMAZON HEADER SECTION
+        # ---------------------
+        # Amazon logo
+        draw.text((width//2, 50), "amazon", fill=(0, 0, 0), font=fonts['title'], anchor="mm")
+        
+        # Amazon smile underline (orange curve)
+        draw.arc([(width//2 - 55, 55), (width//2 + 55, 75)], 0, 180, fill=(255, 153, 0), width=2)
         
         # Add "Order Confirmation" text
-        draw.text((width//2, 110), "Order Confirmation", fill=(0, 0, 0), font=fonts['regular'], anchor="mm")
+        draw.text((width//2, 100), "Order Confirmation", fill=(0, 0, 0), font=fonts['regular'], anchor="mm")
         
         # Draw header separator line
-        draw.line([(50, 140), (width-50, 140)], fill=(200, 200, 200), width=2)
+        draw.line([(50, 130), (width-50, 130)], fill=(220, 220, 220), width=1)
         
         # Current position for drawing content
-        y_position = 170
+        y_position = 160
         
+        # GREETING SECTION
+        # ---------------
         # Add greeting if customer name is provided
         if 'customer_name' in data:
-            draw.text((50, y_position), f"Hello {data['customer_name']},", fill=(31, 31, 31), font=fonts['regular'])
+            draw.text((58, y_position), f"Hello {data['customer_name']},", fill=(50, 50, 50), font=fonts['regular'])
+            y_position += 40
+        else:
+            draw.text((58, y_position), "Hello,", fill=(50, 50, 50), font=fonts['regular'])
             y_position += 40
         
         # Thank you message
-        draw.text((50, y_position), "Thank you for shopping with Amazon.", fill=(80, 80, 80), font=fonts['small'])
-        y_position += 40
-        
-        # Order confirmation message
-        draw.text((50, y_position), "Your order has been confirmed.", fill=(80, 80, 80), font=fonts['small'])
-        y_position += 40
-        
-        # Draw a separator line
-        draw.line([(50, y_position), (width-50, y_position)], fill=(200, 200, 200), width=1)
+        draw.text((58, y_position), "Thank you for shopping with Amazon.", fill=(80, 80, 80), font=fonts['small'])
         y_position += 30
         
-        # Order Details section
-        draw.text((50, y_position), "Order Details", fill=(0, 0, 0), font=fonts['regular'])
+        # Order confirmation message
+        draw.text((58, y_position), "Your order has been confirmed and will ship soon.", fill=(80, 80, 80), font=fonts['small'])
+        y_position += 40
+        
+        # ORDER DETAILS SECTION
+        # --------------------
+        # Draw a separator line
+        draw.line([(50, y_position), (width-50, y_position)], fill=(220, 220, 220), width=1)
+        y_position += 30
+        
+        # Order Details heading
+        draw.text((58, y_position), "Order Details", fill=(40, 40, 40), font=fonts['bold'])
         y_position += 40
         
         # Order number and date
-        order_number = data.get('order_number', '000000')
-        order_date = data.get('date', datetime.now().strftime('%m/%d/%Y'))
+        order_number = data.get('order_number', '')
+        if not order_number:
+            # Generate a realistic Amazon order number
+            random_chars = ''.join(random.choices('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', k=7))
+            order_number = f"113-{random_chars}-{random.randint(1000000, 9999999)}"
         
-        # Format order number with Amazon style (D01-XXXXXXX-XXXXXXX)
-        if len(order_number) <= 6:
-            formatted_order_number = f"D01-{order_number.zfill(7)}-{str(hash(order_number))[-7:]}"
-        else:
-            formatted_order_number = order_number
+        order_date = data.get('date', datetime.now().strftime('%B %d, %Y'))
         
-        draw.text((50, y_position), f"Order #: {formatted_order_number}", fill=(0, 0, 0), font=fonts['regular'])
+        # Format date to look more like Amazon's format (e.g., "August 15, 2023")
+        try:
+            date_obj = datetime.strptime(order_date, '%m/%d/%Y')
+            order_date = date_obj.strftime('%B %d, %Y')
+        except:
+            # Keep existing format if parsing fails
+            pass
+        
+        draw.text((58, y_position), f"Order #: {order_number}", fill=(40, 40, 40), font=fonts['regular'])
         y_position += 30
-        draw.text((50, y_position), f"Order Date: {order_date}", fill=(80, 80, 80), font=fonts['small'])
+        draw.text((58, y_position), f"Order Date: {order_date}", fill=(80, 80, 80), font=fonts['small'])
         y_position += 40
         
-        # Items section
-        draw.text((50, y_position), "Items Ordered:", fill=(0, 0, 0), font=fonts['regular'])
+        # ITEMS SECTION
+        # ------------
+        draw.text((58, y_position), "Items Ordered:", fill=(40, 40, 40), font=fonts['bold'])
         y_position += 30
         
         # Product details with a light gray background
-        product_section = [(50, y_position), (width-50, y_position + 150)]
+        product_section = [(50, y_position), (width-50, y_position + 160)]
         draw.rectangle(product_section, fill=(245, 245, 245))
         
         # Product name and price
@@ -201,16 +224,20 @@ class ReceiptGenerator:
             if len(product_name) > 60:
                 product_name = product_name[:57] + "..."
                 
-            draw.text((70, y_position + 20), product_name, fill=(0, 0, 0), font=fonts['regular'])
+            # Product name
+            draw.text((70, y_position + 20), product_name, fill=(0, 0, 0), font=fonts['bold'])
+            
+            # Sold by Amazon.com
+            draw.text((70, y_position + 50), "Sold by: Amazon.com Services LLC", fill=(80, 80, 80), font=fonts['small'])
             
             # Quantity (default to 1)
             quantity = data.get('quantity', 1)
-            draw.text((70, y_position + 50), f"Quantity: {quantity}", fill=(80, 80, 80), font=fonts['small'])
+            draw.text((70, y_position + 75), f"Quantity: {quantity}", fill=(80, 80, 80), font=fonts['small'])
             
             # Price
             if 'price' in data:
                 price = data.get('price', '0.00')
-                draw.text((70, y_position + 80), f"Price: ${price}", fill=(0, 0, 0), font=fonts['regular'])
+                draw.text((70, y_position + 100), f"Price: ${price}", fill=(0, 0, 0), font=fonts['regular'])
                 
                 # Calculate subtotal
                 try:
@@ -219,13 +246,14 @@ class ReceiptGenerator:
                 except (ValueError, TypeError):
                     subtotal_str = price
                     
-                draw.text((70, y_position + 110), f"Subtotal: ${subtotal_str}", fill=(0, 0, 0), font=fonts['regular'])
+                draw.text((70, y_position + 125), f"Subtotal: ${subtotal_str}", fill=(0, 0, 0), font=fonts['regular'])
         
-        y_position = product_section[1][1] + 30
+        y_position = product_section[1][1] + 40
         
-        # Order Summary
-        draw.text((50, y_position), "Order Summary:", fill=(0, 0, 0), font=fonts['regular'])
-        y_position += 30
+        # ORDER SUMMARY SECTION
+        # -------------------
+        draw.text((58, y_position), "Order Summary:", fill=(40, 40, 40), font=fonts['bold'])
+        y_position += 40
         
         # Get price value
         price = data.get('price', '0.00')
@@ -233,7 +261,7 @@ class ReceiptGenerator:
         # Calculate values
         try:
             price_float = float(price)
-            tax = price_float * 0.085  # 8.5% tax
+            tax = price_float * 0.0925  # 9.25% tax
             shipping = 5.99
             total = price_float + tax + shipping
             
@@ -248,30 +276,32 @@ class ReceiptGenerator:
             shipping_str = "5.99"
             total_str = "0.00"
         
-        # Right aligned price information
+        # Table layout
+        left_x = 58
         right_x = width - 70
-        left_x = width - 250
         
         # Summary table
         draw.text((left_x, y_position), "Items:", fill=(80, 80, 80), font=fonts['small'])
-        draw.text((right_x, y_position), f"${price_str}", fill=(0, 0, 0), font=fonts['small'], anchor="ra")
+        draw.text((right_x, y_position), f"${price_str}", fill=(40, 40, 40), font=fonts['small'], anchor="ra")
         y_position += 25
         
         draw.text((left_x, y_position), "Shipping & handling:", fill=(80, 80, 80), font=fonts['small'])
-        draw.text((right_x, y_position), f"${shipping_str}", fill=(0, 0, 0), font=fonts['small'], anchor="ra")
+        draw.text((right_x, y_position), f"${shipping_str}", fill=(40, 40, 40), font=fonts['small'], anchor="ra")
         y_position += 25
         
-        draw.text((left_x, y_position), "Total before tax:", fill=(80, 80, 80), font=fonts['small'])
+        # Calculate before tax
         try:
             before_tax = float(price_str) + float(shipping_str)
             before_tax_str = f"{before_tax:.2f}"
         except ValueError:
             before_tax_str = "0.00"
-        draw.text((right_x, y_position), f"${before_tax_str}", fill=(0, 0, 0), font=fonts['small'], anchor="ra")
+            
+        draw.text((left_x, y_position), "Total before tax:", fill=(80, 80, 80), font=fonts['small'])
+        draw.text((right_x, y_position), f"${before_tax_str}", fill=(40, 40, 40), font=fonts['small'], anchor="ra")
         y_position += 25
         
         draw.text((left_x, y_position), "Estimated tax:", fill=(80, 80, 80), font=fonts['small'])
-        draw.text((right_x, y_position), f"${tax_str}", fill=(0, 0, 0), font=fonts['small'], anchor="ra")
+        draw.text((right_x, y_position), f"${tax_str}", fill=(40, 40, 40), font=fonts['small'], anchor="ra")
         y_position += 25
         
         # Add a line before the total
@@ -279,13 +309,14 @@ class ReceiptGenerator:
         y_position += 15
         
         # Order total
-        draw.text((left_x, y_position), "Order total:", fill=(0, 0, 0), font=fonts['bold'])
-        draw.text((right_x, y_position), f"${total_str}", fill=(0, 0, 0), font=fonts['bold'], anchor="ra")
+        draw.text((left_x, y_position), "Order total:", fill=(40, 40, 40), font=fonts['bold'])
+        draw.text((right_x, y_position), f"${total_str}", fill=(40, 40, 40), font=fonts['bold'], anchor="ra")
         
-        y_position += 60
+        y_position += 50
         
-        # Shipping information section
-        draw.text((50, y_position), "Shipping Information:", fill=(0, 0, 0), font=fonts['regular'])
+        # SHIPPING INFORMATION SECTION
+        # --------------------------
+        draw.text((58, y_position), "Shipping Information:", fill=(40, 40, 40), font=fonts['bold'])
         y_position += 30
         
         # Shipping address (if provided)
@@ -295,19 +326,51 @@ class ReceiptGenerator:
                 draw.text((70, y_position), line, fill=(80, 80, 80), font=fonts['small'])
                 y_position += 25
         
-        # Add payment method
-        y_position += 20
-        draw.text((50, y_position), "Payment Information:", fill=(0, 0, 0), font=fonts['regular'])
+        # Shipping method
+        y_position += 10
+        draw.text((70, y_position), "Shipping Method: Standard Shipping", fill=(80, 80, 80), font=fonts['small'])
+        y_position += 25
+        
+        # Estimated delivery
+        # Calculate an estimated delivery date (7-10 days from order date)
+        try:
+            date_obj = datetime.strptime(data.get('date', datetime.now().strftime('%m/%d/%Y')), '%m/%d/%Y')
+            delivery_date = date_obj + timedelta(days=random.randint(7, 10))
+            delivery_date_str = delivery_date.strftime('%B %d, %Y')
+        except:
+            delivery_date_str = "7-10 business days"
+            
+        draw.text((70, y_position), f"Estimated Delivery: {delivery_date_str}", fill=(80, 80, 80), font=fonts['small'])
+        y_position += 40
+        
+        # PAYMENT INFORMATION SECTION
+        # -------------------------
+        draw.text((58, y_position), "Payment Information:", fill=(40, 40, 40), font=fonts['bold'])
         y_position += 30
         
+        # Payment method (default to a credit card)
         payment_method = data.get('payment_method', 'Visa ending in ****')
         draw.text((70, y_position), f"Payment Method: {payment_method}", fill=(80, 80, 80), font=fonts['small'])
+        y_position += 25
         
-        # Add footer
+        # Billing address - use shipping address if no billing address provided
+        draw.text((70, y_position), "Billing Address:", fill=(80, 80, 80), font=fonts['small'])
+        y_position += 25
+        
+        if 'shipping_address' in data and data['shipping_address']:
+            address_lines = data['shipping_address'].split('\n')
+            for line in address_lines:
+                draw.text((90, y_position), line, fill=(80, 80, 80), font=fonts['small'])
+                y_position += 20
+        
+        # FOOTER SECTION
+        # -------------
         y_position = height - 100
         draw.text((width//2, y_position), "Thank you for shopping with Amazon!", fill=(80, 80, 80), font=fonts['small'], anchor="mm")
-        y_position += 30
+        y_position += 25
         draw.text((width//2, y_position), "Questions? Visit amazon.com/help", fill=(80, 80, 80), font=fonts['small'], anchor="mm")
+        y_position += 25
+        draw.text((width//2, y_position), "Order details can be viewed at amazon.com/orders", fill=(80, 80, 80), font=fonts['small'], anchor="mm")
         
         # Save the image to a BytesIO object
         img_io = BytesIO()

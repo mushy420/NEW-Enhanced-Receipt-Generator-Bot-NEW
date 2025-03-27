@@ -5,6 +5,8 @@ import re
 from typing import Dict, Any, Optional, List, Union, Callable
 from datetime import datetime, timedelta
 import random
+import sys
+import importlib
 
 from config import STORES, DROPDOWN_TIMEOUT, MODAL_TIMEOUT, PRICE_REGEX, DATE_REGEX
 from receipt_generator import ReceiptGenerator
@@ -52,9 +54,20 @@ class StoreSelect(ui.Select):
                 )
                 return
 
-            # First stage modal - Basic information
-            modal_class = self._get_first_stage_modal(selected_store)
-            modal = modal_class(user_id=interaction.user.id, store_id=selected_store)
+            # Make sure the module is reloaded to get the latest version
+            import cogs.receipt_modals
+            importlib.reload(cogs.receipt_modals)
+            
+            # Dynamically import the modal classes
+            if selected_store == 'amazon':
+                from cogs.receipt_modals import AmazonBasicInfoModal
+                modal = AmazonBasicInfoModal(user_id=interaction.user.id, store_id=selected_store)
+            elif selected_store == 'apple':
+                from cogs.receipt_modals import AppleBasicInfoModal
+                modal = AppleBasicInfoModal(user_id=interaction.user.id, store_id=selected_store)
+            else:
+                from cogs.receipt_modals import GenericBasicInfoModal
+                modal = GenericBasicInfoModal(user_id=interaction.user.id, store_id=selected_store)
             
             await interaction.response.send_modal(modal)
             logger.info(f"Sent modal for store {selected_store} to user {interaction.user.id}")
@@ -78,20 +91,11 @@ class StoreSelect(ui.Select):
                     logger.error(f"Failed to send error message: {str(e2)}", exc_info=True)
 
     def _get_first_stage_modal(self, store_id: str):
-        """Get the appropriate first stage modal for the selected store."""
-        # Import here to avoid circular imports
-        from cogs.receipt_modals import (
-            AmazonBasicInfoModal, 
-            AppleBasicInfoModal, 
-            GenericBasicInfoModal
-        )
-        
-        store_modals = {
-            'amazon': AmazonBasicInfoModal,
-            'apple': AppleBasicInfoModal,
-            # Add more store-specific modals as needed
-        }
-        return store_modals.get(store_id, GenericBasicInfoModal)
+        """
+        This method is maintained for backward compatibility but is no longer used.
+        We now import the modals directly in the callback.
+        """
+        pass
 
 class ReceiptView(ui.View):
     """View containing the store selection dropdown."""

@@ -182,6 +182,8 @@ This bot is designed for educational purposes only. The receipts generated shoul
 - [Pillow](https://python-pillow.org/) for image processing capabilities
 - All contributors to the project
 mushy420 on github
+
+I will only be updating the website and this github repository has been discontinued. Please visit the website for free usage of this.
 ---
 
 <div align="center">

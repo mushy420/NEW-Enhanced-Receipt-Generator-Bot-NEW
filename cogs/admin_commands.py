@@ -63,7 +63,7 @@ class AdminCog(commands.Cog):
         action = action.lower()
         
         if action == "sync":
-            await self._sync_commands(interaction)
+            await self._sync_commands(interaction, target)
         elif action == "restart":
             await self._restart_bot(interaction)
         elif action == "status":
@@ -76,23 +76,43 @@ class AdminCog(commands.Cog):
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
     
-    async def _sync_commands(self, interaction: discord.Interaction):
+    async def _sync_commands(self, interaction: discord.Interaction, guild_id: Optional[str] = None):
         """Sync application commands."""
         try:
             # Defer the response as syncing might take time
             await interaction.response.defer(ephemeral=True, thinking=True)
             
-            # Sync commands
-            synced = await self.bot.tree.sync()
+            # Sync commands globally or to a specific guild
+            if guild_id:
+                try:
+                    guild_id_int = int(guild_id)
+                    guild = self.bot.get_guild(guild_id_int)
+                    if not guild:
+                        await interaction.followup.send(f"❌ Could not find guild with ID {guild_id}", ephemeral=True)
+                        return
+                    
+                    synced = await self.bot.tree.sync(guild=guild)
+                    embed = discord.Embed(
+                        title="Commands Synced",
+                        description=f"✅ Successfully synced {len(synced)} command(s) to guild {guild.name}.",
+                        color=discord.Color(EMBED_COLOR)
+                    )
+                    self.logger.info(f"Commands synced to guild {guild.name} ({guild.id}) by {interaction.user.id}: {len(synced)} commands")
+                except ValueError:
+                    await interaction.followup.send("❌ Invalid guild ID. Please provide a valid integer ID.", ephemeral=True)
+                    return
+            else:
+                # Sync globally
+                synced = await self.bot.tree.sync()
+                embed = discord.Embed(
+                    title="Commands Synced",
+                    description=f"✅ Successfully synced {len(synced)} command(s) globally.",
+                    color=discord.Color(EMBED_COLOR)
+                )
+                self.logger.info(f"Commands synced globally by {interaction.user.id}: {len(synced)} commands")
             
-            embed = discord.Embed(
-                title="Commands Synced",
-                description=f"✅ Successfully synced {len(synced)} command(s).",
-                color=discord.Color(EMBED_COLOR)
-            )
             await interaction.followup.send(embed=embed, ephemeral=True)
             
-            self.logger.info(f"Commands synced by {interaction.user.id}: {len(synced)} commands")
         except Exception as e:
             self.logger.error(f"Error syncing commands: {e}", exc_info=True)
             embed = discord.Embed(

@@ -1,148 +1,183 @@
-# Enhanced Receipt Generator Discord Bot
+# Discord Receipt Generator Bot
 
-A feature-rich Discord bot for generating realistic-looking receipts for various popular stores.
+<div align="center">
+  <img src="https://i.imgur.com/ZaMLoqI.png" width="150" height="150" alt="Receipt Bot Logo">
+  <br>
+  <b>Generate realistic receipt images for various popular retailers</b>
+  <br>
+  <br>
+</div>
 
-## Features
+A powerful Discord bot designed to generate high-quality, realistic-looking receipts for various popular stores. Perfect for educational purposes and digital organization.
 
-- Interactive receipt generation via slash commands
-- Support for multiple popular stores (Amazon, Apple, Best Buy, Walmart, GOAT, StockX, Louis Vuitton)
-- Customizable receipt details through intuitive forms
-- High-quality receipt images sent via direct messages
-- Comprehensive error handling and user guidance
-- Admin commands for bot management
-- Detailed help system
+## 📋 Features
 
-## Setup Instructions
+- **Multiple Store Support**: Create receipts for Amazon, Apple, Best Buy, Walmart, GOAT, StockX, Louis Vuitton, and more
+- **Interactive UI**: User-friendly Discord modals for inputting receipt information
+- **Realistic Designs**: High-quality receipt templates that closely mimic real store receipts
+- **Customization**: Control over product details, pricing, shipping information, and more
+- **Instant Delivery**: Receipts delivered directly to users via Discord
+- **Daily Limits**: Built-in request limiting to prevent abuse
+- **Admin Controls**: Special commands for server administrators
+- **Detailed Help System**: Comprehensive command documentation
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
 - Python 3.8 or higher
-- A Discord bot token
-- Required Python packages (see requirements.txt)
+- Discord Bot Token ([Discord Developer Portal](https://discord.com/developers/applications))
+- Required Python packages (listed in requirements.txt)
 
 ### Installation
 
-1. **Clone the repository:**
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/discord-receipt-generator.git
+   cd discord-receipt-generator
+   ```
 
-```bash
-git clone https://github.com/yourusername/receipt-generator-bot.git
-cd receipt-generator-bot
-```
+2. **Set up a virtual environment (recommended)**
+   ```bash
+   python -m venv venv
+   
+   # On Windows
+   venv\Scripts\activate
+   
+   # On macOS/Linux
+   source venv/bin/activate
+   ```
 
-2. **Install dependencies:**
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-```bash
-pip install -r requirements.txt
-```
+4. **Configure the bot**
+   - Create a `.env` file in the project root with the following:
+   ```
+   BOT_TOKEN=your_discord_bot_token_here
+   ADMIN_ROLE_ID=your_admin_role_id_here
+   ```
 
-3. **Configure the bot:**
-
-- Copy `.env.example` to `.env` and fill in your Discord bot token:
-
-```bash
-cp .env.example .env
-```
-
-- Edit the `.env` file with your details:
-
-```
-BOT_TOKEN=your_discord_bot_token_here
-ADMIN_ROLE_ID=your_admin_role_id_here
-```
-
-4. **Create required directories:**
-
-```bash
-mkdir -p templates fonts
-```
-
-5. **Run the bot:**
-
-```bash
-python main.py
-```
+5. **Run the bot**
+   ```bash
+   python bot.py
+   ```
 
 ### Discord Bot Setup
 
-1. Go to the [Discord Developer Portal](https://discord.com/developers/applications)
-2. Create a new application and set up a bot
-3. Enable the "Message Content Intent" under the Bot settings
-4. Invite the bot to your server with the appropriate permissions:
+1. Create a new application at the [Discord Developer Portal](https://discord.com/developers/applications)
+2. Navigate to the Bot section and create a bot
+3. Enable the following Privileged Gateway Intents:
+   - Presence Intent
+   - Server Members Intent
+   - Message Content Intent
+4. Copy your bot token and add it to the `.env` file
+5. Generate an OAuth2 URL with the following permissions:
    - `applications.commands` (for slash commands)
    - `bot` with permissions:
      - Send Messages
      - Embed Links
      - Attach Files
      - Use Slash Commands
+6. Invite the bot to your server using the generated URL
 
-## Usage
+## 📝 Usage
 
 ### Commands
 
 - `/receipt` - Start the receipt generation process
-- `/help` - Show help information
-- `/help [command]` - Show detailed help for a specific command
+- `/help` - View general help information
+- `/help [command]` - View detailed help for a specific command
 - `/admin sync` - Sync slash commands (admin only)
+- `/admin status` - View bot status information (admin only)
 - `/admin restart` - Restart the bot (admin only)
-- `/admin status` - Show bot status information (admin only)
 
-### Receipt Generation Process
+### Receipt Generation
 
-1. Use `/receipt` to start the generator
+1. Use the `/receipt` command to start the generator
 2. Select a store from the dropdown menu
-3. Fill in the product details in the form
-4. Fill in customer information in the next form
-5. Review all details and make any necessary edits
-6. Click "Generate Receipt" to create and receive your receipt
+3. Fill in basic product information (name, price, etc.)
+4. Add shipping details and customer information
+5. Receive your generated receipt as an image
 
-## Customization
+## 📁 Project Structure
+
+```
+discord-receipt-generator/
+├── assets/              # Static assets like fonts and templates
+│   ├── fonts/           # Font files for receipt generation
+│   └── templates/       # Receipt template images
+├── cogs/                # Command modules
+│   ├── admin_commands.py       # Admin-only commands
+│   ├── help_commands.py        # Help system commands
+│   └── receipt_commands.py     # Receipt generation commands
+├── core/                # Core functionality
+│   ├── config.py               # Configuration settings
+│   └── receipt_generator.py    # Receipt image generation logic
+├── ui/                  # User interface components
+│   ├── receipt_modals.py       # Modal forms for receipt information
+│   └── receipt_views.py        # Views and components for interaction
+├── utils/               # Utility modules
+│   ├── logging_setup.py        # Logging configuration
+│   └── validators.py           # Input validation helpers
+├── .env                 # Environment variables (not tracked by git)
+├── .env.example         # Example environment file
+├── .gitignore           # Git ignore file
+├── bot.py               # Main bot file
+├── README.md            # This documentation
+└── requirements.txt     # Python dependencies
+```
+
+## 🛠️ Customization
 
 ### Adding New Stores
 
-To add a new store, edit the `config.py` file and add your store to the `STORES` dictionary:
+To add a new store template:
 
-```python
-"yourstore": {
-    "name": "Your Store",
-    "logo_url": "https://example.com/logo.png",
-    "template_path": "templates/yourstore_receipt.png",
-    "color": 0xFF0000,  # Hex color code
-},
-```
+1. Add the store information to `core/config.py` in the `STORES` dictionary:
+   ```python
+   "your_store_id": {
+       "name": "Your Store Name",
+       "logo_url": "https://example.com/logo.png",
+       "template_path": "templates/your_store_receipt.png",
+       "color": 0xHEXCOLOR,  # Hex color code
+   },
+   ```
 
-Then create a corresponding modal class in `cogs/receipt_generator.py` and a template generator method in `receipt_generator.py`.
+2. Create a generator method in `core/receipt_generator.py` named `_generate_your_store_id_receipt`
 
-### Customizing Receipt Templates
+3. Add any store-specific modal classes in `ui/receipt_modals.py` if needed
 
-Edit the appropriate template generator method in `receipt_generator.py` to modify the layout and appearance of each store's receipt.
+### Modifying Templates
 
-## Troubleshooting
+Edit the receipt generation methods in `core/receipt_generator.py` to change the appearance and layout of each store's receipt.
 
-### Slash Commands Not Appearing
+## 📊 Technical Details
 
-If slash commands don't appear:
+- Built with [discord.py](https://github.com/Rapptz/discord.py) v2.0+
+- Uses [Pillow](https://python-pillow.org/) for image manipulation
+- Implements the Discord slash commands API
+- Uses modal forms for data input
+- Stores configuration in environment variables
 
-1. Make sure you've invited the bot with the `applications.commands` scope
-2. Try running `/admin sync` if you have admin permissions
-3. Wait up to an hour for Discord to cache the commands globally
+## 📄 License
 
-### Bot Not Responding
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-1. Check your `.env` file has the correct bot token
-2. Make sure all required dependencies are installed
-3. Check the bot's permissions in your Discord server
-4. Look at the console output for any error messages
+## ⚠️ Disclaimer
 
-### DM Not Received
+This bot is designed for educational purposes only. The receipts generated should not be used for fraudulent activities, returns, or any illegal purposes. The developers are not responsible for any misuse of this software.
 
-1. Make sure your DMs are open for the server (Server Privacy Settings)
-2. Check if the bot has permission to send messages to you
-
-## License
-
-This project is licensed under the Apache 2.0 License - see the LICENSE file for details.
-
-## Acknowledgements
+## 🙏 Acknowledgements
 
 - [discord.py](https://github.com/Rapptz/discord.py) for the Discord API wrapper
-- [Pillow](https://python-pillow.org/) for image manipulation
+- [Pillow](https://python-pillow.org/) for image processing capabilities
+- All contributors to the project
+mushy420 on github
+---
+
+<div align="center">
+  Made with ❤️ for the Discord community
+</div>

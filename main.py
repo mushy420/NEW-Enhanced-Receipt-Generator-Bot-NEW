@@ -33,7 +33,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-# Create bot instance without the CommandSyncFlags parameter
+# Create bot instance
 bot = commands.Bot(
     command_prefix=PREFIX, 
     intents=intents, 
@@ -168,9 +168,6 @@ async def on_resumed():
 async def on_connect():
     """Event fired when the bot connects to Discord."""
     logger.info(f"Connected to Discord (Session ID: {bot.ws.session_id if bot.ws else 'Unknown'})")
-
-# Removed the problematic on_interaction handler
-# Let discord.py handle interactions normally
 
 # Improved exception catching for unhandled errors
 @bot.event

@@ -5,14 +5,13 @@ import time
 import traceback
 import os
 from typing import List, Dict, Any
-
+import datetime
 import discord
 import aiohttp
 from discord.ext import commands
 from discord import app_commands
 
-from utils.logging_setup import setup_logger
-from core.config import BOT_TOKEN, PREFIX, LOG_LEVEL, LOG_FORMAT, LOG_FILE, ERROR_COLOR
+from config import BOT_TOKEN, PREFIX, LOG_LEVEL, LOG_FORMAT, LOG_FILE, ERROR_COLOR
 
 def setup_bot() -> commands.Bot:
     """Set up and configure the bot instance."""

@@ -2,10 +2,12 @@ import discord
 from discord import ui
 import logging
 import re
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List, Union, Callable
+from datetime import datetime, timedelta
+import random
+
 from config import STORES, DROPDOWN_TIMEOUT, MODAL_TIMEOUT, PRICE_REGEX, DATE_REGEX
 from receipt_generator import ReceiptGenerator
-from datetime import datetime
 
 # Setup logging
 logger = logging.getLogger('receipt_views')
@@ -49,8 +51,8 @@ class StoreSelect(ui.Select):
             )
             return
 
-        # Determine the appropriate modal for the store
-        modal_class = self._get_store_modal(selected_store)
+        # First stage modal - Basic information
+        modal_class = self._get_first_stage_modal(selected_store)
         modal = modal_class(user_id=interaction.user.id, store_id=selected_store)
         
         try:
@@ -62,17 +64,21 @@ class StoreSelect(ui.Select):
                 ephemeral=True
             )
 
-    def _get_store_modal(self, store_id: str):
-        """Get the appropriate modal for the selected store."""
+    def _get_first_stage_modal(self, store_id: str):
+        """Get the appropriate first stage modal for the selected store."""
         # Import here to avoid circular imports
-        from cogs.receipt_modals import AmazonDetailsModal, AppleDetailsModal, GenericDetailsModal
+        from cogs.receipt_modals import (
+            AmazonBasicInfoModal, 
+            AppleBasicInfoModal, 
+            GenericBasicInfoModal
+        )
         
         store_modals = {
-            'amazon': AmazonDetailsModal,
-            'apple': AppleDetailsModal,
+            'amazon': AmazonBasicInfoModal,
+            'apple': AppleBasicInfoModal,
             # Add more store-specific modals as needed
         }
-        return store_modals.get(store_id, GenericDetailsModal)
+        return store_modals.get(store_id, GenericBasicInfoModal)
 
 class ReceiptView(ui.View):
     """View containing the store selection dropdown."""

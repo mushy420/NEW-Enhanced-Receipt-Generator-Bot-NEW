@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import logging
-from typing import Optional, List, Dict, Any
+from typing import Optional
 
 from config import EMBED_COLOR, PREFIX
 
@@ -77,7 +77,7 @@ class HelpCog(commands.Cog):
                   "3. Fill in the product details\n"
                   "4. Fill in your personal information\n"
                   "5. Review all details and generate your receipt\n"
-                  "6. Your receipt will be sent to your DMs",
+                  "6. Your receipt will be sent to you",
             inline=False
         )
         
@@ -137,10 +137,8 @@ class HelpCog(commands.Cog):
                     value="1. Use `/receipt` to start the generator\n"
                           "2. Select a store from the dropdown menu\n"
                           "3. Fill in the product details in the modal\n"
-                          "4. Fill in your personal information in the next modal\n"
-                          "5. Review all details and generate your receipt\n"
-                          "6. Your receipt will be sent to your DMs\n\n"
-                          "Note: Make sure your DMs are open to receive the receipt!",
+                          "4. The receipt will be generated and sent to you\n\n"
+                          "Note: All receipts are for educational purposes only!",
                     inline=False
                 )
                 
@@ -180,4 +178,3 @@ class HelpCog(commands.Cog):
 async def setup(bot: commands.Bot):
     """Add the cog to the bot."""
     await bot.add_cog(HelpCog(bot))
-  

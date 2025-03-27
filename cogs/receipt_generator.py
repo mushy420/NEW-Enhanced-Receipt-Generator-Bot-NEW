@@ -7,10 +7,11 @@ from datetime import datetime, timedelta
 from typing import Dict
 from collections import defaultdict
 
-from config import (
+# Update import to use relative path
+from ..config import (
     EMBED_COLOR, ERROR_COLOR, COOLDOWN_SECONDS, MAX_REQUESTS_PER_DAY
 )
-from cogs.receipt_views import ReceiptView
+from .receipt_views import ReceiptView
 
 # Setup logging
 logger = logging.getLogger('receipt_cog')

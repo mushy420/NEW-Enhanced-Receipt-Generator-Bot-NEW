@@ -2,7 +2,7 @@
 
 This has been pushed to a website currently apple is the only good option
 
-https://instantreceipt.lovable.app
+[https://instantreceipt.lovable.app](https://instantreceipt.netlify.app)
 
 
 # Discord Receipt Generator Bot

@@ -169,12 +169,8 @@ async def on_connect():
     """Event fired when the bot connects to Discord."""
     logger.info(f"Connected to Discord (Session ID: {bot.ws.session_id if bot.ws else 'Unknown'})")
 
-# Added error handler for modal interactions
-@bot.event
-async def on_interaction(interaction):
-    """Handle any interaction errors that might not be caught by other handlers."""
-    # Let the standard handlers process the interaction first
-    await bot.process_application_commands(interaction)
+# Removed the problematic on_interaction handler
+# Let discord.py handle interactions normally
 
 # Improved exception catching for unhandled errors
 @bot.event
@@ -234,6 +230,7 @@ async def load_extensions():
 
 # Main function to run the bot
 async def main():
+    """Main function to run the bot."""
     async with bot:
         await load_extensions()
         try:

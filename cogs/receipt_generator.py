@@ -63,7 +63,14 @@ class StoreSelect(ui.Select):
         modal_class = self._get_store_modal(selected_store)
         modal = modal_class(user_id=interaction.user.id, store_id=selected_store)
         
-        await interaction.response.send_modal(modal)
+        try:
+            await interaction.response.send_modal(modal)
+        except Exception as e:
+            logger.error(f"Error showing modal: {str(e)}", exc_info=True)
+            await interaction.followup.send(
+                f"❌ An error occurred while showing the modal: {str(e)}", 
+                ephemeral=True
+            )
 
     def _get_store_modal(self, store_id: str):
         """Get the appropriate modal for the selected store."""
@@ -84,10 +91,10 @@ class BaseDetailsModal(ui.Modal):
     async def on_submit(self, interaction: discord.Interaction):
         """Base submit handler."""
         try:
-            # Validate inputs 
+            # Defer the response to give us time to process
             await interaction.response.defer(ephemeral=True)
             
-            # Validate modal inputs
+            # Validate inputs and get receipt details
             details = await self._validate_inputs(interaction)
             
             # Generate receipt
@@ -124,6 +131,15 @@ class GenericDetailsModal(BaseDetailsModal):
     def __init__(self, user_id: int, store_id: str):
         super().__init__(user_id, store_id)
         
+        # Customer name
+        self.customer_name = ui.TextInput(
+            label="Customer Name", 
+            placeholder="Enter customer name", 
+            required=False, 
+            style=discord.TextStyle.short
+        )
+        self.add_item(self.customer_name)
+        
         # Product details
         self.product = ui.TextInput(
             label="Product Name", 
@@ -147,7 +163,8 @@ class GenericDetailsModal(BaseDetailsModal):
             label="Purchase Date", 
             placeholder="MM/DD/YYYY", 
             required=True, 
-            style=discord.TextStyle.short
+            style=discord.TextStyle.short,
+            default=datetime.now().strftime("%m/%d/%Y")
         )
         self.add_item(self.date)
         
@@ -172,6 +189,7 @@ class GenericDetailsModal(BaseDetailsModal):
         
         return {
             'store_name': STORES[self.store_id]['name'],
+            'customer_name': self.customer_name.value,
             'product': self.product.value,
             'price': self.price.value,
             'date': self.date.value,
@@ -192,11 +210,20 @@ class AmazonDetailsModal(GenericDetailsModal):
             style=discord.TextStyle.short
         )
         self.add_item(self.order_number)
+        
+        # Remove one of the existing items to make room for the new one
+        # Modal can only have 5 text inputs
+        self.remove_item(self.customer_name)
 
     async def _validate_inputs(self, interaction: discord.Interaction) -> Dict[str, Any]:
         """Validate inputs for Amazon receipt modal."""
+        # Get base details without customer name
         details = await super()._validate_inputs(interaction)
         details['order_number'] = self.order_number.value
+        
+        # Add a default customer name (since we removed that field)
+        details['customer_name'] = interaction.user.display_name
+        
         return details
 
 class AppleDetailsModal(GenericDetailsModal):
@@ -212,11 +239,18 @@ class AppleDetailsModal(GenericDetailsModal):
             style=discord.TextStyle.short
         )
         self.add_item(self.serial_number)
+        
+        # Remove one of the existing items to make room for the new one
+        self.remove_item(self.customer_name)
 
     async def _validate_inputs(self, interaction: discord.Interaction) -> Dict[str, Any]:
         """Validate inputs for Apple receipt modal."""
         details = await super()._validate_inputs(interaction)
         details['serial_number'] = self.serial_number.value
+        
+        # Add a default customer name (since we removed that field)
+        details['customer_name'] = interaction.user.display_name
+        
         return details
 
 class ReceiptView(ui.View):

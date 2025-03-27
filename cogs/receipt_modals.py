@@ -5,6 +5,7 @@ import re
 from typing import Dict, Any, Optional, List, Union, Callable
 from datetime import datetime, timedelta
 import random
+import traceback
 
 from config import STORES, PRICE_REGEX, DATE_REGEX, MODAL_TIMEOUT
 from receipt_generator import ReceiptGenerator
@@ -20,6 +21,7 @@ class BaseBasicInfoModal(ui.Modal):
         self.user_id = user_id
         self.store_id = store_id
         self.basic_info = {}
+        self.timeout = MODAL_TIMEOUT
 
     async def on_submit(self, interaction: discord.Interaction):
         """Process the first stage and show the second stage modal."""
@@ -30,13 +32,22 @@ class BaseBasicInfoModal(ui.Modal):
             # Create and show the second stage modal
             second_stage_modal = self._get_second_stage_modal(interaction)
             await interaction.response.send_modal(second_stage_modal)
+            logger.info(f"Successfully sent second stage modal for {self.store_id} to user {self.user_id}")
             
         except Exception as e:
-            logger.error(f"Error in first stage modal: {str(e)}", exc_info=True)
-            await interaction.response.send_message(
-                f"❌ An error occurred: {str(e)}", 
-                ephemeral=True
-            )
+            error_traceback = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+            logger.error(f"Error in first stage modal: {str(e)}\n{error_traceback}")
+            
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    f"❌ An error occurred: {str(e)}", 
+                    ephemeral=True
+                )
+            else:
+                await interaction.followup.send(
+                    f"❌ An error occurred: {str(e)}", 
+                    ephemeral=True
+                )
 
     async def _validate_inputs(self, interaction: discord.Interaction) -> Dict[str, Any]:
         """Validate modal inputs. To be overridden by subclasses."""
@@ -59,6 +70,7 @@ class BaseAdditionalInfoModal(ui.Modal):
         self.user_id = user_id
         self.store_id = store_id
         self.basic_info = basic_info
+        self.timeout = MODAL_TIMEOUT
 
     async def on_submit(self, interaction: discord.Interaction):
         """Process the combined data and generate the receipt."""
@@ -87,9 +99,12 @@ class BaseAdditionalInfoModal(ui.Modal):
                 file=discord.File(receipt_image, filename=f"{self.store_id}_receipt.png"),
                 ephemeral=True
             )
+            logger.info(f"Successfully generated receipt for user {self.user_id}")
         
         except Exception as e:
-            logger.error(f"Receipt generation error: {str(e)}", exc_info=True)
+            error_traceback = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+            logger.error(f"Receipt generation error: {str(e)}\n{error_traceback}")
+            
             await interaction.followup.send(
                 f"❌ An error occurred: {str(e)}", 
                 ephemeral=True
@@ -109,7 +124,8 @@ class GenericBasicInfoModal(BaseBasicInfoModal):
         self.product = ui.TextInput(
             label="Product Name", 
             placeholder="Enter product name", 
-            required=True, 
+            required=True,
+            max_length=100,
             style=discord.TextStyle.short
         )
         self.add_item(self.product)
@@ -118,7 +134,8 @@ class GenericBasicInfoModal(BaseBasicInfoModal):
         self.price = ui.TextInput(
             label="Price", 
             placeholder="Enter price (e.g., 99.99)", 
-            required=True, 
+            required=True,
+            max_length=10,
             style=discord.TextStyle.short
         )
         self.add_item(self.price)
@@ -127,7 +144,8 @@ class GenericBasicInfoModal(BaseBasicInfoModal):
         self.date = ui.TextInput(
             label="Purchase Date", 
             placeholder="MM/DD/YYYY", 
-            required=True, 
+            required=True,
+            max_length=10,
             style=discord.TextStyle.short,
             default=datetime.now().strftime("%m/%d/%Y")
         )
@@ -160,7 +178,8 @@ class GenericAdditionalInfoModal(BaseAdditionalInfoModal):
         self.customer_name = ui.TextInput(
             label="Customer Name", 
             placeholder="Enter customer name", 
-            required=False, 
+            required=False,
+            max_length=100,
             style=discord.TextStyle.short
         )
         self.add_item(self.customer_name)
@@ -169,7 +188,8 @@ class GenericAdditionalInfoModal(BaseAdditionalInfoModal):
         self.shipping_address = ui.TextInput(
             label="Shipping Address", 
             placeholder="Enter full shipping address", 
-            required=True, 
+            required=True,
+            max_length=1000,
             style=discord.TextStyle.paragraph
         )
         self.add_item(self.shipping_address)
@@ -179,6 +199,7 @@ class GenericAdditionalInfoModal(BaseAdditionalInfoModal):
             label="Order Number (Optional)", 
             placeholder="Enter order number or leave blank for auto-generate",
             required=False,
+            max_length=30,
             style=discord.TextStyle.short
         )
         self.add_item(self.order_number)
@@ -188,7 +209,6 @@ class GenericAdditionalInfoModal(BaseAdditionalInfoModal):
         # Generate order number if not provided
         order_number = self.order_number.value
         if not order_number:
-            import random
             order_number = f"ORD-{random.randint(10000, 99999)}"
             
         return {
@@ -208,6 +228,7 @@ class AmazonBasicInfoModal(BaseBasicInfoModal):
             label="Product URL (Optional)",
             placeholder="https://amazon.com/...",
             required=False,
+            max_length=200,
             style=discord.TextStyle.short
         )
         self.add_item(self.product_url)
@@ -216,7 +237,8 @@ class AmazonBasicInfoModal(BaseBasicInfoModal):
         self.product = ui.TextInput(
             label="Product Name", 
             placeholder="Enter product name", 
-            required=True, 
+            required=True,
+            max_length=100,
             style=discord.TextStyle.short
         )
         self.add_item(self.product)
@@ -225,7 +247,8 @@ class AmazonBasicInfoModal(BaseBasicInfoModal):
         self.price = ui.TextInput(
             label="Price", 
             placeholder="Enter price (e.g., 99.99)", 
-            required=True, 
+            required=True,
+            max_length=10,
             style=discord.TextStyle.short
         )
         self.add_item(self.price)
@@ -257,7 +280,8 @@ class AmazonAdditionalInfoModal(BaseAdditionalInfoModal):
         self.shipping_address = ui.TextInput(
             label="Shipping Address", 
             placeholder="Enter full shipping address", 
-            required=True, 
+            required=True,
+            max_length=1000,
             style=discord.TextStyle.paragraph
         )
         self.add_item(self.shipping_address)
@@ -267,6 +291,7 @@ class AmazonAdditionalInfoModal(BaseAdditionalInfoModal):
             label="Order Number (Optional)", 
             placeholder="Leave blank for auto-generate",
             required=False,
+            max_length=30,
             style=discord.TextStyle.short
         )
         self.add_item(self.order_number)
@@ -276,6 +301,7 @@ class AmazonAdditionalInfoModal(BaseAdditionalInfoModal):
             label="Payment Method (Optional)", 
             placeholder="e.g., Visa ending in 1234",
             required=False,
+            max_length=50,
             style=discord.TextStyle.short,
             default="Visa ending in 1234"
         )
@@ -286,6 +312,7 @@ class AmazonAdditionalInfoModal(BaseAdditionalInfoModal):
             label="Quantity", 
             placeholder="Enter quantity",
             required=False,
+            max_length=3,
             style=discord.TextStyle.short,
             default="1"
         )
@@ -328,7 +355,8 @@ class AppleBasicInfoModal(BaseBasicInfoModal):
         self.product = ui.TextInput(
             label="Product Name", 
             placeholder="Enter product name", 
-            required=True, 
+            required=True,
+            max_length=100,
             style=discord.TextStyle.short
         )
         self.add_item(self.product)
@@ -337,7 +365,8 @@ class AppleBasicInfoModal(BaseBasicInfoModal):
         self.price = ui.TextInput(
             label="Price", 
             placeholder="Enter price (e.g., 99.99)", 
-            required=True, 
+            required=True,
+            max_length=10,
             style=discord.TextStyle.short
         )
         self.add_item(self.price)
@@ -346,7 +375,8 @@ class AppleBasicInfoModal(BaseBasicInfoModal):
         self.date = ui.TextInput(
             label="Purchase Date", 
             placeholder="MM/DD/YYYY", 
-            required=True, 
+            required=True,
+            max_length=10,
             style=discord.TextStyle.short,
             default=datetime.now().strftime("%m/%d/%Y")
         )
@@ -379,7 +409,8 @@ class AppleAdditionalInfoModal(BaseAdditionalInfoModal):
         self.serial_number = ui.TextInput(
             label="Serial Number", 
             placeholder="Enter product serial number", 
-            required=True, 
+            required=True,
+            max_length=30,
             style=discord.TextStyle.short
         )
         self.add_item(self.serial_number)
@@ -388,7 +419,8 @@ class AppleAdditionalInfoModal(BaseAdditionalInfoModal):
         self.shipping_address = ui.TextInput(
             label="Shipping Address", 
             placeholder="Enter full shipping address", 
-            required=True, 
+            required=True,
+            max_length=1000,
             style=discord.TextStyle.paragraph
         )
         self.add_item(self.shipping_address)
@@ -398,6 +430,7 @@ class AppleAdditionalInfoModal(BaseAdditionalInfoModal):
             label="Payment Method (Optional)", 
             placeholder="e.g., Apple Pay",
             required=False,
+            max_length=50,
             style=discord.TextStyle.short,
             default="Apple Pay"
         )

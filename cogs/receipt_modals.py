@@ -17,11 +17,10 @@ logger = logging.getLogger('receipt_modals')
 class BaseBasicInfoModal(ui.Modal):
     """Base first-stage modal for collecting basic receipt information."""
     def __init__(self, user_id: int, store_id: str):
-        super().__init__(title=f"Basic {STORES[store_id]['name']} Receipt Info")
+        super().__init__(title=f"Basic {STORES[store_id]['name']} Receipt Info", timeout=MODAL_TIMEOUT)
         self.user_id = user_id
         self.store_id = store_id
         self.basic_info = {}
-        self.timeout = MODAL_TIMEOUT
 
     async def on_submit(self, interaction: discord.Interaction):
         """Process the first stage and show the second stage modal."""
@@ -66,11 +65,10 @@ class BaseBasicInfoModal(ui.Modal):
 class BaseAdditionalInfoModal(ui.Modal):
     """Base second-stage modal for collecting additional receipt information."""
     def __init__(self, user_id: int, store_id: str, basic_info: Dict[str, Any]):
-        super().__init__(title=f"Additional {STORES[store_id]['name']} Details")
+        super().__init__(title=f"Additional {STORES[store_id]['name']} Details", timeout=MODAL_TIMEOUT)
         self.user_id = user_id
         self.store_id = store_id
         self.basic_info = basic_info
-        self.timeout = MODAL_TIMEOUT
 
     async def on_submit(self, interaction: discord.Interaction):
         """Process the combined data and generate the receipt."""

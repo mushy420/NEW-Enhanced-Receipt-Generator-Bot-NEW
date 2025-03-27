@@ -30,7 +30,7 @@ class ReceiptCog(commands.Cog):
         """Log when the cog is loaded."""
         self.logger.info("Receipt Generator cog is ready")
     
-    @app_commands.command(name="receipt", description="Generate a receipt for various stores")
+    @app_commands.command(name="receipt", description="Generate a realistic receipt for various stores")
     @app_commands.checks.cooldown(1, COOLDOWN_SECONDS)
     async def receipt(self, interaction: discord.Interaction):
         """Start the receipt generation process."""
@@ -56,8 +56,21 @@ class ReceiptCog(commands.Cog):
         # Create embed for store selection
         embed = discord.Embed(
             title="Receipt Generator",
-            description="Please select a store to generate a receipt:",
+            description="Please select a store to generate a receipt. You'll be guided through two steps to complete your receipt.",
             color=discord.Color(EMBED_COLOR)
+        )
+        
+        # Add more details to the embed
+        embed.add_field(
+            name="Step 1",
+            value="Select basic product information (name, price, etc.)",
+            inline=False
+        )
+        
+        embed.add_field(
+            name="Step 2",
+            value="Add shipping details and other information",
+            inline=False
         )
         
         # Create view with store selection dropdown
@@ -69,7 +82,6 @@ class ReceiptCog(commands.Cog):
         # Send the embed and view
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
         self.logger.info(f"Receipt generation started by {user_id}")
-
 
 async def setup(bot: commands.Bot):
     """Add the cog to the bot."""
